@@ -1,5 +1,5 @@
 [package]
-name = "zero2production"
+name = "zero2prod"
 version = "0.1.0"
 authors = ["Oghenemarho Orukele <orukele.dev@gmail.com>"]
 edition = "2021"
@@ -14,4 +14,5 @@ name = "zero2prod"
 [dependencies]
 actix-web = "4.3.1"
 reqwest = "0.11.17"
+serde = {version  = "1.0.160", features = ["derive"]}
 tokio = { version = "1", features = ["macros", "rt-multi-thread"]}
