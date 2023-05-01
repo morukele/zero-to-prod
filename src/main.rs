@@ -1,3 +1,4 @@
+use secrecy::ExposeSecret;
 use sqlx::postgres::PgPool;
 use std::net::TcpListener;
 use zero2prod::configuration::get_configuration;
@@ -10,9 +11,10 @@ async fn main() -> std::io::Result<()> {
     init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("Failed to read configuration.");
-    let connection_pool = PgPool::connect(&configuration.database.connection_string())
-        .await
-        .expect("Failed to connect to Postgres.");
+    let connection_pool =
+        PgPool::connect(&configuration.database.connection_string().expose_secret())
+            .await
+            .expect("Failed to connect to Postgres.");
 
     // Here we choose to bind explicitly to localhost, 127.0.0.1, for security
     // reasons. This binding may cause issues in some environments. For example,
