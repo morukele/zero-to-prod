@@ -19,6 +19,10 @@ config = { version = "0.13", default-features = false, features = ["yaml"] }
 sqlx = { version = "0.6", default-features = false, features = ["runtime-actix-rustls", "macros", "postgres", "uuid", "chrono", "migrate"] }
 uuid = { version = "1", features = ["v4"] }
 chrono = { version = "0.4.22", default-features = false, features = ["clock"] }
+log = "0.4.17"
+tracing = "0.1.37"
+env_logger = "0.10.0"
+tracing-subscriber = {version = "0.3", features = ["registry", "env-filter"]}
 
 [dev-dependencies]
 reqwest = { version = "0.11", features = ["json"] }
