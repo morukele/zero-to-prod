@@ -1,6 +1,9 @@
 use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::{postgres::{PgConnectOptions, PgSslMode}, ConnectOptions};
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -67,6 +70,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
             config::File::from(configuration_directory.join(environment.as_str())).required(true),
         )
         // Add in settings from environment variables
+        // Format of environment variable is `APP_NAME__VARIABLE=value`
         .add_source(config::Environment::with_prefix("app").separator("__"))
         .build()?;
 
