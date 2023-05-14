@@ -1,0 +1,32 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Push to server
+      uses: easingthemes/ssh-deploy@v2.2.13
+      with:
+        ssh_private_key: ${{ secrets.SERVER_SSH_KEY }}
+        ssh_public_key: ${{ secrets.SERVER_SSH_KEY_PUB }}
+        remote_host: ${{ secrets.SERVER_HOST }}
+        remote_user: ${{ secrets.SERVER_USER }}
+        remote_path: /var/www/production
+        args: -rltgoDzvO --delete --no-perms --no-owner --no-group --exclude .git*
+
+    - name: Build and deploy Docker image
+      run: |
+        cd /var/www/production
+        docker build -t myapp:latest .
+        docker stop myapp || true
+        docker rm myapp || true
+        docker run -d --name myapp -p 80:80 myapp:latest
