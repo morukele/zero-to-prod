@@ -71,7 +71,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         )
         // Add in settings from environment variables
         // Format of environment variable is `APP_NAME__VARIABLE=value`
-        .add_source(config::Environment::with_prefix("app").separator("__"))
+        .add_source(config::Environment::with_prefix("APP").separator("__"))
         .build()?;
 
     settings.try_deserialize::<Settings>()
