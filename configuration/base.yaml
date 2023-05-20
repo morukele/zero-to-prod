@@ -9,4 +9,4 @@ database:
 email_client:
   base_url: "https://api.sendgrid.com"
   sender_email: "orukele.dev@gmail.com"
-  authorization_token: "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"
+  authorization_token: "obvious secret"
