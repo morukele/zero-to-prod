@@ -2,19 +2,12 @@ use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use sqlx::PgPool;
-use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
     email: String,
     name: String,
-}
-
-pub fn parse_subscriber(form: FormData) -> Result<NewSubscriber, String> {
-    let name = SubscriberName::parse(form.name)?;
-    let email = SubscriberEmail::parse(form.email)?;
-    Ok(NewSubscriber { email, name })
 }
 
 // Implementing a method for converting NewSubscriber into FormData
@@ -74,20 +67,4 @@ pub async fn insert_subscriber(
         e
     })?;
     Ok(())
-}
-
-/// Returns true if the input satisfies all our validation constraints
-/// on subscriber names, false otherwise.
-pub fn is_valid_name(s: &str) -> bool {
-    let is_empty_or_whitespace = s.trim().is_empty();
-    // Grapheme checks for characters that are percieved as single character by the user
-    // but is actually made up of more than one character e.g. â = a + ^
-    let is_too_long = s.graphemes(true).count() > 256;
-
-    // Iterate over all characters in the input to check if any of them matches a forbidden character
-    let forbidden_characters = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
-    let contains_forbidden_characters = s.chars().any(|g| forbidden_characters.contains(&g));
-
-    // Returns false if any condition is voilated
-    !(is_empty_or_whitespace || is_too_long || contains_forbidden_characters)
 }
