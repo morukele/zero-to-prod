@@ -1,5 +1,0 @@
-application:
-  host: 0.0.0.0
-database:
-  host: "45.76.45.195"
-  require_ssl: false

@@ -1,22 +1,18 @@
 use crate::domain::SubscriberEmail;
-use secrecy::Secret;
+use secrecy::{ExposeSecret, Secret};
+use sendgrid::error::SendgridError;
+use sendgrid::v3::{Content, Email, Message, Personalization, Sender};
 
 #[derive(Clone)]
 pub struct EmailClient {
-    http_client: reqwest::Client,
-    base_url: String,
+    sg_client: Sender,
     sender: SubscriberEmail,
 }
 
 impl EmailClient {
-    pub fn new(
-        base_url: String,
-        sender: SubscriberEmail,
-        authorization_token: Secret<String>,
-    ) -> Self {
+    pub fn new(sender: SubscriberEmail, authorization_token: Secret<String>) -> Self {
         Self {
-            http_client: reqwest::Client::new(),
-            base_url,
+            sg_client: Sender::new(authorization_token.expose_secret().to_string()),
             sender,
         }
     }
@@ -27,19 +23,28 @@ impl EmailClient {
         subject: &str,
         html_content: &str,
         text_content: &str,
-    ) -> Result<(), String> {
-        todo!()
-    }
-}
+    ) -> Result<(), SendgridError> {
+        // personalization is a struct that hold information about the recipients
+        // it also holds other necessary information to successfully send the email
+        // if confused here, please refer to the sendgrid client doc on github
+        // V3 is the implemented verson here
+        let p = Personalization::new(Email::new(recipient.as_ref()));
 
-#[cfg(test)]
-mod tests {
-    #[tokio::test]
-    async fn send_email_fires_a_request_to_base_url() {
-        // Arrange
+        let message = Message::new(Email::new(self.sender.as_ref()))
+            .set_subject(subject)
+            .add_content(
+                Content::new()
+                    .set_content_type("text/plain")
+                    .set_value(text_content),
+            )
+            .add_content(
+                Content::new()
+                    .set_content_type("text/html")
+                    .set_value(html_content),
+            )
+            .add_personalization(p);
 
-        // Act
-
-        // Assert
+        self.sg_client.send(&message).await?.error_for_status()?;
+        Ok(())
     }
 }
