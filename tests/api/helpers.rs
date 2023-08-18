@@ -48,7 +48,7 @@ pub async fn spawn_app() -> TestApp {
     let _ = tokio::spawn(application.run_until_stopped());
 
     TestApp {
-        address: address,
+        address,
         db_pool: get_connection_pool(&configuration.database),
     }
 }

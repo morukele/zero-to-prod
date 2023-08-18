@@ -24,7 +24,7 @@ impl TryFrom<FormData> for NewSubscriber {
 
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, pool),
+    skip(form, pool, email_client),
     fields(
         subscriber_email = %form.email,
         subscriber_name= %form.name
@@ -91,7 +91,7 @@ pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: NewSubscriber,
 ) -> Result<(), sendgrid::error::SendgridError> {
-    let confirmation_link = "https://my-api.com/subscriptions/confirm";
+    let confirmation_link = "https://localhost:8000/subscriptions/confirm";
     let plain_body = format!(
         "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
         confirmation_link
