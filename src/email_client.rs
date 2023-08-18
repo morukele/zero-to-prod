@@ -3,7 +3,7 @@ use secrecy::{ExposeSecret, Secret};
 use sendgrid::error::SendgridError;
 use sendgrid::v3::{Content, Email, Message, Personalization, Sender};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EmailClient {
     sg_client: Sender,
     sender: SubscriberEmail,

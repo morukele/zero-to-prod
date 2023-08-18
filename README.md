@@ -1,6 +1,10 @@
 # Zero To Production with a Twist
 
+![CI](https://github.com/morukele/zero-to-prod/actions/workflows/general.yml/badge.svg)
+
 Following the Zero to Production book for learning backend development in Rust.
+
+## Twists
 
 There are some twist to this project, I am self hosting it with the following steps:
 
@@ -15,6 +19,10 @@ Running on a VPS instead of an app platform leads me to implement things like au
 
 For the email client, Sendgrid is used as a provider and the Rust unofficial sendgird client by [gsquire](https://github.com/gsquire/sendgrid-rs) is used in the code base.
 
-## Future plans
+## Deployment
 
-Automate the deployment to the vps whne a push is made to the main branch in github
+The deployment of the application is done using docker-compose.
+
+When a new version of the app is created, a container is built and stored in the docker container registry.
+
+The docker compose file is then updated to reflect the new version and restarted.

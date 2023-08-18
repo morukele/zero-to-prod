@@ -8,4 +8,4 @@ database:
   database_name: "newsletter"
 email_client:
   sender_email: "orukele.dev@gmail.com"
-  authorization_token: "secret token"
+  authorization_token: "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"
