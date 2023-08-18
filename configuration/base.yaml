@@ -1,5 +1,6 @@
 application:
   port: 8000
+  host: 0.0.0.0
 database:
   host: "localhost"
   port: 5432
@@ -7,7 +8,7 @@ database:
   password: "postgres"
   database_name: "newsletter"
 email_client:
-  base_url: "localhost"
-  sender_email: "test@gmail.com"
+  base_url: "https://api.sendgrid.com/v3/mail"
+  sender_email: "orukele.dev@gmail.com"
   authorization_token: "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"
   timeout_milliseconds: 1000

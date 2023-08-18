@@ -1,8 +1,8 @@
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
+use wiremock::MockServer;
 use zero2prod::configuration::{get_configuration, DatabaseSettings};
-use zero2prod::email_client::EmailClient;
 use zero2prod::startup::{get_connection_pool, Application};
 use zero2prod::telemetry::{get_subscriber, init_subscriber};
 
@@ -23,7 +23,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
-    pub email_cleint: EmailClient,
+    pub email_server: MockServer,
 }
 
 pub async fn spawn_app() -> TestApp {
@@ -42,31 +42,19 @@ pub async fn spawn_app() -> TestApp {
     // Create and migrate database
     configure_database(&configuration.database).await;
 
+    // Create email server
+    let email_server = MockServer::start().await;
+
     // Lunch the application as a background task
-    let application = Application::build(configuration.clone())
+    let application = Application::build(configuration.clone(), email_server.uri())
         .await
         .expect("Failed to build the application");
     let address = format!("http://127.0.0.1:{}", application.port());
-    let _ = tokio::spawn(application.run_until_stopped());
-
-    // Configure the email client
-    let sender_email = configuration
-        .email_client
-        .sender()
-        .expect("Invalid sender email address");
-
-    let timeout = configuration.email_client.timeout();
-
-    let email_client = EmailClient::new(
-        configuration.email_client.base_url,
-        sender_email,
-        configuration.email_client.authorization_token,
-        timeout,
-    );
+    tokio::spawn(application.run_until_stopped());
 
     TestApp {
         address,
-        email_cleint: email_client,
+        email_server,
         db_pool: get_connection_pool(&configuration.database),
     }
 }
@@ -77,7 +65,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Failed to connect to Postgres");
     connection
-        .execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
         .await
         .expect("Failed to create database.");
 

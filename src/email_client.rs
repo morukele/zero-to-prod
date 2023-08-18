@@ -36,71 +36,83 @@ impl EmailClient {
         text_content: &str,
     ) -> Result<(), reqwest::Error> {
         let url = format!("{}/send", self.base_url);
-        let request_body = SendEmailRequest {
-            personalizations: vec![Personalization {
-                to: vec![Recipient {
-                    email: recipient.as_ref(),
-                }],
-                cc: vec![],
-            }],
-            from: Recipient {
+        let request_body = Message {
+            from: Email {
                 email: self.sender.as_ref(),
             },
             subject,
-            content: vec![
-                EmailContent {
-                    content_type: ContentType::TextPlain,
+            personalizations: vec![Personalization {
+                to: vec![Email {
+                    email: recipient.as_ref(),
+                }],
+                cc: None,
+                bcc: None,
+                subject: None,
+            }],
+            content: Some(vec![
+                Content {
+                    content_type: "text/plain",
                     value: text_content,
                 },
-                EmailContent {
-                    content_type: ContentType::TextHtml,
+                Content {
+                    content_type: "text/html",
                     value: html_content,
                 },
-            ],
+            ]),
         };
+
         self.http_client
             .post(url)
+            .header("Content-Type", "application/json")
             .bearer_auth(self.authorization_token.expose_secret())
             .json(&request_body)
             .send()
             .await?
             .error_for_status()?;
-
         Ok(())
     }
 }
 
-#[derive(Serialize)]
-enum ContentType {
-    #[serde(rename = "text/plain")]
-    TextPlain,
-    #[serde(rename = "text/html")]
-    TextHtml,
+/// The main structure for a V3 API mail send call. This is composed of many other smaller
+/// structures used to add lots of customization to your message.
+#[derive(Serialize, Debug)]
+pub struct Message<'a> {
+    from: Email<'a>,
+    subject: &'a str,
+    personalizations: Vec<Personalization<'a>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content: Option<Vec<Content<'a>>>,
 }
 
-#[derive(Serialize)]
-struct EmailContent<'a> {
-    content_type: ContentType,
-    value: &'a str,
-}
-
-#[derive(Serialize)]
-struct Recipient<'a> {
+/// An email with a required address and an optional name field.
+#[derive(Clone, Serialize, Debug)]
+pub struct Email<'a> {
     email: &'a str,
 }
 
-#[derive(Serialize)]
-struct Personalization<'a> {
-    to: Vec<Recipient<'a>>,
-    cc: Vec<Recipient<'a>>,
+/// The body of an email with the content type and the message.
+#[derive(Clone, Default, Serialize, Debug)]
+pub struct Content<'a> {
+    #[serde(rename = "type")]
+    content_type: &'a str,
+    value: &'a str,
 }
 
-#[derive(Serialize)]
-struct SendEmailRequest<'a> {
-    personalizations: Vec<Personalization<'a>>,
-    from: Recipient<'a>,
-    subject: &'a str,
-    content: Vec<EmailContent<'a>>,
+/// A personalization block for a V3 message. It has to at least contain one email as a to
+/// address. All other fields are optional.
+#[derive(Serialize, Debug)]
+pub struct Personalization<'a> {
+    to: Vec<Email<'a>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cc: Option<Vec<Email<'a>>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bcc: Option<Vec<Email<'a>>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    subject: Option<String>,
 }
 
 #[cfg(test)]

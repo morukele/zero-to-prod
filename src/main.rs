@@ -8,7 +8,8 @@ async fn main() -> std::io::Result<()> {
     init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("Failed to read configuration.");
-    let application = Application::build(configuration).await?;
+    let base_url = configuration.email_client.base_url.clone();
+    let application = Application::build(configuration, base_url).await?;
     application.run_until_stopped().await?;
     Ok(())
 }
