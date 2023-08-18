@@ -90,7 +90,7 @@ pub async fn insert_subscriber(
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: NewSubscriber,
-) -> Result<(), sendgrid::error::SendgridError> {
+) -> Result<(), reqwest::Error> {
     let confirmation_link = "https://localhost:8000/subscriptions/confirm";
     let plain_body = format!(
         "Welcome to our newsletter!\nVisit {} to confirm your subscription.",

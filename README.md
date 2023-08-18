@@ -17,8 +17,6 @@ NB: A postgres database is created in the VPS instance.s
 
 Running on a VPS instead of an app platform leads me to implement things like autoscaling myself via HAproxy.
 
-For the email client, Sendgrid is used as a provider and the Rust unofficial sendgird client by [gsquire](https://github.com/gsquire/sendgrid-rs) is used in the code base.
-
 ## Deployment
 
 The deployment of the application is done using docker-compose.

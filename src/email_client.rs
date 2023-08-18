@@ -1,19 +1,30 @@
 use crate::domain::SubscriberEmail;
+use reqwest::Client;
 use secrecy::{ExposeSecret, Secret};
-use sendgrid::error::SendgridError;
-use sendgrid::v3::{Content, Email, Message, Personalization, Sender};
+use serde::Serialize;
+use std::vec;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct EmailClient {
-    sg_client: Sender,
+    http_client: Client,
+    base_url: String,
     sender: SubscriberEmail,
+    authorization_token: Secret<String>,
 }
 
 impl EmailClient {
-    pub fn new(sender: SubscriberEmail, authorization_token: Secret<String>) -> Self {
+    pub fn new(
+        base_url: String,
+        sender: SubscriberEmail,
+        authorization_token: Secret<String>,
+        timeout: std::time::Duration,
+    ) -> Self {
+        let http_client = Client::builder().timeout(timeout).build().unwrap();
         Self {
-            sg_client: Sender::new(authorization_token.expose_secret().to_string()),
+            http_client,
+            base_url,
             sender,
+            authorization_token,
         }
     }
 
@@ -23,28 +34,212 @@ impl EmailClient {
         subject: &str,
         html_content: &str,
         text_content: &str,
-    ) -> Result<(), SendgridError> {
-        // personalization is a struct that hold information about the recipients
-        // it also holds other necessary information to successfully send the email
-        // if confused here, please refer to the sendgrid client doc on github
-        // V3 is the implemented verson here
-        let p = Personalization::new(Email::new(recipient.as_ref()));
+    ) -> Result<(), reqwest::Error> {
+        let url = format!("{}/send", self.base_url);
+        let request_body = SendEmailRequest {
+            personalizations: vec![Personalization {
+                to: vec![Recipient {
+                    email: recipient.as_ref(),
+                }],
+                cc: vec![],
+            }],
+            from: Recipient {
+                email: self.sender.as_ref(),
+            },
+            subject,
+            content: vec![
+                EmailContent {
+                    content_type: ContentType::TextPlain,
+                    value: text_content,
+                },
+                EmailContent {
+                    content_type: ContentType::TextHtml,
+                    value: html_content,
+                },
+            ],
+        };
+        self.http_client
+            .post(url)
+            .bearer_auth(self.authorization_token.expose_secret())
+            .json(&request_body)
+            .send()
+            .await?
+            .error_for_status()?;
 
-        let message = Message::new(Email::new(self.sender.as_ref()))
-            .set_subject(subject)
-            .add_content(
-                Content::new()
-                    .set_content_type("text/plain")
-                    .set_value(text_content),
-            )
-            .add_content(
-                Content::new()
-                    .set_content_type("text/html")
-                    .set_value(html_content),
-            )
-            .add_personalization(p);
-
-        self.sg_client.send(&message).await?.error_for_status()?;
         Ok(())
+    }
+}
+
+#[derive(Serialize)]
+enum ContentType {
+    #[serde(rename = "text/plain")]
+    TextPlain,
+    #[serde(rename = "text/html")]
+    TextHtml,
+}
+
+#[derive(Serialize)]
+struct EmailContent<'a> {
+    content_type: ContentType,
+    value: &'a str,
+}
+
+#[derive(Serialize)]
+struct Recipient<'a> {
+    email: &'a str,
+}
+
+#[derive(Serialize)]
+struct Personalization<'a> {
+    to: Vec<Recipient<'a>>,
+    cc: Vec<Recipient<'a>>,
+}
+
+#[derive(Serialize)]
+struct SendEmailRequest<'a> {
+    personalizations: Vec<Personalization<'a>>,
+    from: Recipient<'a>,
+    subject: &'a str,
+    content: Vec<EmailContent<'a>>,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::SubscriberEmail;
+    use crate::email_client::EmailClient;
+    use claim::{assert_err, assert_ok};
+    use fake::faker::internet::en::SafeEmail;
+    use fake::faker::lorem::en::{Paragraph, Sentence};
+    use fake::{Fake, Faker};
+    use secrecy::Secret;
+    use wiremock::matchers::{any, header, header_exists, method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    struct SendEmailBodyMatcher;
+
+    impl wiremock::Match for SendEmailBodyMatcher {
+        fn matches(&self, request: &wiremock::Request) -> bool {
+            let result: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
+
+            if let Ok(body) = result {
+                body.get("personalizations").is_some()
+                    && body.get("from").is_some()
+                    && body.get("subject").is_some()
+                    && body.get("content").is_some()
+            } else {
+                false
+            }
+        }
+    }
+
+    /// Generate a random email subject
+    fn subject() -> String {
+        Sentence(1..2).fake()
+    }
+    /// Generate a random email content
+    fn content() -> String {
+        Paragraph(1..10).fake()
+    }
+    /// Generate a random subscriber email
+    fn email() -> SubscriberEmail {
+        SubscriberEmail::parse(SafeEmail().fake()).unwrap()
+    }
+    /// Get a test instance of `EmailClient`.
+    fn email_client(base_url: String) -> EmailClient {
+        EmailClient::new(
+            base_url,
+            email(),
+            Secret::new(Faker.fake()),
+            std::time::Duration::from_millis(200),
+        )
+    }
+
+    #[tokio::test]
+    async fn send_email_fires_a_request_to_base_url() {
+        // Arrange
+        let mock_server = MockServer::start().await;
+        let email_client = email_client(mock_server.uri());
+
+        Mock::given(header_exists("Authorization"))
+            .and(header("Content-Type", "application/json"))
+            .and(path("/send"))
+            .and(method("POST"))
+            .and(SendEmailBodyMatcher)
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Act
+        let _ = email_client
+            .send_email(email(), &subject(), &content(), &content())
+            .await;
+
+        // Assert
+    }
+
+    #[tokio::test]
+    async fn send_email_succeeds_if_the_server_returns_200() {
+        // Arrange
+        let mock_server = MockServer::start().await;
+        let email_client = email_client(mock_server.uri());
+
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(200))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Act
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
+            .await;
+
+        // Assert
+        assert_ok!(outcome);
+    }
+
+    #[tokio::test]
+    async fn send_email_fails_if_the_server_returns_500() {
+        // Arrange
+        let mock_server = MockServer::start().await;
+        let email_client = email_client(mock_server.uri());
+
+        Mock::given(any())
+            .respond_with(ResponseTemplate::new(500))
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Act
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
+            .await;
+
+        // Assert
+        assert_err!(outcome);
+    }
+
+    #[tokio::test]
+    async fn send_email_times_out_if_the_server_takes_too_long() {
+        // Arrange
+        let mock_server = MockServer::start().await;
+        let email_client = email_client(mock_server.uri());
+
+        let response = ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(180));
+
+        Mock::given(any())
+            .respond_with(response)
+            .expect(1)
+            .mount(&mock_server)
+            .await;
+
+        // Act
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
+            .await;
+
+        // Assert
+        assert_err!(outcome);
     }
 }
