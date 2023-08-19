@@ -112,24 +112,8 @@ async fn subscribe_sends_a_confirmation_email_for_valid_data() {
     // Assert
     // Get the first intercepted request
     let email_request = &app.email_server.received_requests().await.unwrap()[0];
-    // Parse the body as JSON, starting from raw bytes
-    let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+    let confirmation_links = app.get_confirmation_link(&email_request);
 
-    // Extract the link from one of the request fields.
-    let get_link = |s| {
-        let links: Vec<_> = linkify::LinkFinder::new()
-            .links(s)
-            .filter(|l| *l.kind() == linkify::LinkKind::Url)
-            .collect();
-        assert_eq!(links.len(), 1);
-        links[0].as_str().to_owned()
-    };
-
-    let text_content = &body["content"][0]["value"].as_str().unwrap();
-    let html_content = &body["content"][1]["value"].as_str().unwrap();
-
-    let text_link = get_link(text_content);
-    let html_link = get_link(html_content);
-
-    assert_eq!(text_link, html_link);
+    // The two links should be identical
+    assert_eq!(confirmation_links.html, confirmation_links.plain_text);
 }

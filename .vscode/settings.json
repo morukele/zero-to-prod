@@ -1,9 +1,0 @@
-{
-    "yaml.schemas": {
-        "https://json.schemastore.org/yamllint.json": "file:///Users/oghenemarho/Developer/Tutorials/zero2prod/configuration/production.yaml"
-    },
-    "rust-analyzer.linkedProjects": [
-        "./Cargo.toml",
-        "./Cargo.toml"
-    ]
-}
