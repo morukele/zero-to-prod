@@ -45,8 +45,6 @@ pub async fn subscribe(
         return HttpResponse::InternalServerError().finish();
     }
 
-    let confirmation_link = "http://127.0.0.1:8000/subscriptions/confirm";
-
     // Send an email to the subscriber
     if send_confirmation_email(&email_client, new_subscriber)
         .await
@@ -92,7 +90,8 @@ pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: NewSubscriber,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = "http://127.0.0.1:8000/subscriptions/confirm";
+    let confirmation_link =
+        "http://127.0.0.1:8000/subscriptions/confirm?subscription_token=mytoken";
     let html_body = format!(
         "Welcome to our newsletter!<br />\
         Click <a href=\"{}\">here</a> to confirm your subscription.",
