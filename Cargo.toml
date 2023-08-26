@@ -29,6 +29,7 @@ unicode-segmentation = "1"
 validator = "0.16.0"
 reqwest = { version = "0.11",default-features = false, features = ["json", "rustls-tls"] }
 tracing-bunyan-formatter = "0.3"
+rand = { version = "0.8", features=["std_rng"] }
 
 [dev-dependencies]
 once_cell = "1"
