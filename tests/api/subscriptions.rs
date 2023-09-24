@@ -63,7 +63,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
         assert_eq!(
             400,
             response.status().as_u16(),
-            // Additional customised error message on test failure
+            // Additional customized error message on test failure
             "The API did not fail with 400 Bad Request when the payload was {}.",
             error_message
         );
@@ -116,4 +116,23 @@ async fn subscribe_sends_a_confirmation_email_for_valid_data() {
 
     // The two links should be identical
     assert_eq!(confirmation_links.html, confirmation_links.plain_text);
+}
+
+#[tokio::test]
+async fn subscribe_fails_if_there_is_a_fatal_database_error() {
+    // Arrange
+    let app = spawn_app().await;
+    let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
+
+    // Sabotage the database
+    sqlx::query!("ALTER TABLE subscriptions DROP COLUMN email;",)
+        .execute(&app.db_pool)
+        .await
+        .unwrap();
+
+    // Act
+    let response = app.post_subscriptions(body.into()).await;
+
+    // Assert
+    assert_eq!(response.status().as_u16(), 500);
 }
