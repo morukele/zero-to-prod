@@ -10,5 +10,5 @@ database:
 email_client:
   base_url: "https://api.sendgrid.com/v3/mail"
   sender_email: "orukele.dev@gmail.com"
-  authorization_token: "Secret-Token-Here"
+  authorization_token: "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"
   timeout_milliseconds: 1000
