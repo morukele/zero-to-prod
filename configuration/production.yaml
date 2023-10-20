@@ -1,8 +1,8 @@
 application:
   host: 0.0.0.0
 database:
-  host: "45.76.45.195"
+  host: "prod-database-address"
   require_ssl: false
 email_client:
   base_url: "https://api.sendgrid.com/v3/mail"
-  sender_email: "orukele.dev@gmail.com"
+  sender_email: "sender-email@example.com"

@@ -10,6 +10,6 @@ database:
   database_name: "newsletter"
 email_client:
   base_url: "https://api.sendgrid.com/v3/mail"
-  sender_email: "your_sender_email@example.com"
+  sender_email: "sender-email@example.com"
   authorization_token: "super-secret-email-api-token"
   timeout_milliseconds: 1000
