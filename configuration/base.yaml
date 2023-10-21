@@ -13,3 +13,4 @@ email_client:
   sender_email: "sender-email@example.com"
   authorization_token: "super-secret-email-api-token"
   timeout_milliseconds: 1000
+redis_uri: "redis://127.0.0.1:6379"
