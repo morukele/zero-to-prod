@@ -8,7 +8,7 @@ impl SubscriberName {
     /// input satisfies all validation constraints.
     pub fn parse(s: String) -> Result<SubscriberName, String> {
         let is_empty_or_whitespace = s.trim().is_empty();
-        // Grapheme checks for characters that are percieved as single character by the user
+        // Grapheme checks for characters that are perceived as single character by the user
         // but is actually made up of more than one character e.g. â = a + ^
         let is_too_long = s.graphemes(true).count() > 256;
 

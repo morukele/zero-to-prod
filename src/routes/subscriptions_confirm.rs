@@ -4,7 +4,7 @@ use reqwest::StatusCode;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::helpers::error_chain_fmt;
+use crate::utils::error_chain_fmt;
 
 #[derive(serde::Deserialize)]
 pub struct Parameters {

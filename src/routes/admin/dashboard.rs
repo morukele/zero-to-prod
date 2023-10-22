@@ -29,23 +29,30 @@ pub async fn admin_dashboard(
     Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
         .body(format!(
-            r#"
-            <!DOCTYPE html>
-            <html lang="en">
-                <head>
-                    <meta http-equiv="content-type" content="text/html; charset=utf-8">
-                    <title>Admin dashboard</title>
-                </head>
-                <body>
-                    <p>Welcome {username}!</p>
-                </body>
-            </html>  
-            "#
+            r#"<!DOCTYPE html>
+                <html lang="en">
+                    <head>
+                        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+                        <title>Admin dashboard</title>
+                    </head>
+                    <body>
+                        <p>Welcome {username}!</p>
+                        <p>Available actions:</p>
+                        <ol>
+                            <li><a href="/admin/password">Change password</a></li>
+                            <li>
+                                <form name="logoutForm" action="/admin/logout" method="post">
+                                    <input type="submit" value="Logout">
+                                </form> 
+                            </li>
+                        </ol>
+                    </body>
+                </html>"#
         )))
 }
 
 #[tracing::instrument(name = "Get username", skip(pool))]
-async fn get_username(user_id: Uuid, pool: &PgPool) -> Result<String, anyhow::Error> {
+pub async fn get_username(user_id: Uuid, pool: &PgPool) -> Result<String, anyhow::Error> {
     let row = sqlx::query!(
         r#"
         SELECT username

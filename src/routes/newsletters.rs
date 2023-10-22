@@ -1,5 +1,5 @@
 use crate::authentication::{validate_credentials, AuthError, Credentials};
-use crate::{domain::SubscriberEmail, email_client::EmailClient, helpers::error_chain_fmt};
+use crate::{domain::SubscriberEmail, email_client::EmailClient, utils::error_chain_fmt};
 use actix_web::{
     http::header::{self, HeaderMap},
     web, HttpRequest, HttpResponse, ResponseError,
