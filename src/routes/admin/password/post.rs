@@ -5,8 +5,7 @@ use sqlx::PgPool;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
-    authentication::{self, validate_credentials, AuthError, Credentials, UserId},
-    routes::admin::dashboard::get_username,
+    authentication::{self, get_username, validate_credentials, AuthError, Credentials, UserId},
     utils::{e500, see_other},
 };
 

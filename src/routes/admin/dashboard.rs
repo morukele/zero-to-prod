@@ -1,10 +1,7 @@
 use actix_web::{http::header::ContentType, web, HttpResponse};
-use anyhow::Context;
-use reqwest::header::LOCATION;
 use sqlx::PgPool;
-use uuid::Uuid;
 
-use crate::session_state::TypedSession;
+use crate::{authentication::get_username, session_state::TypedSession, utils::see_other};
 
 // Returns an opaque 500 while preserving the error's root cause for logging.
 fn e500<T>(e: T) -> actix_web::Error
@@ -21,9 +18,7 @@ pub async fn admin_dashboard(
     let username = if let Some(user_id) = session.get_user_id().map_err(e500)? {
         get_username(user_id, &pool).await.map_err(e500)?
     } else {
-        return Ok(HttpResponse::SeeOther()
-            .insert_header((LOCATION, "/login"))
-            .finish());
+        return Ok(see_other("/login"));
     };
 
     Ok(HttpResponse::Ok()
@@ -40,6 +35,7 @@ pub async fn admin_dashboard(
                         <p>Available actions:</p>
                         <ol>
                             <li><a href="/admin/password">Change password</a></li>
+                            <li><a href="/admin/newsletters">Send newsletter issue</a></li>
                             <li>
                                 <form name="logoutForm" action="/admin/logout" method="post">
                                     <input type="submit" value="Logout">
@@ -49,21 +45,4 @@ pub async fn admin_dashboard(
                     </body>
                 </html>"#
         )))
-}
-
-#[tracing::instrument(name = "Get username", skip(pool))]
-pub async fn get_username(user_id: Uuid, pool: &PgPool) -> Result<String, anyhow::Error> {
-    let row = sqlx::query!(
-        r#"
-        SELECT username
-        FROM users
-        WHERE user_id = $1
-        "#,
-        user_id
-    )
-    .fetch_one(pool)
-    .await
-    .context("Failed to perform a query to retrieve a username.")?;
-
-    Ok(row.username)
 }
